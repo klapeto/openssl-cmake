@@ -73,6 +73,9 @@ else()
         endif(MINGW)
         
         set(MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM})
+    elseif(MINGW AND CROSS)
+        # MINGW Cross compilation (e.g MXE). make will suffice
+        find_program(MAKE_PROGRAM make)
     elseif(NOT UNIX)
         message(FATAL_ERROR "Unsupported platform")
     else()
