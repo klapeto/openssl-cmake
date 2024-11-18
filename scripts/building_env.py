@@ -34,6 +34,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true')
 parser.add_argument('--bash', nargs='?')
 parser.add_argument('--make', nargs='?')
+parser.add_argument('--cc', nargs='?')
 parser.add_argument('--envfile')
 parser.add_argument('os')
 parser.add_argument('cwd')
@@ -63,6 +64,10 @@ if args.bash is not None and len(args.bash) > 0:
 if args.make is not None and len(args.make) > 0:
     add_env('PATH', os.path.dirname(args.make))
 
+# useful to get the mingw path. In case of MSYS, make/bash and mingw are on different directories
+if args.cc is not None and len(args.cc) > 0:
+    add_env('PATH', os.path.dirname(args.cc))
+
 # os-specifics
 if args.os == 'WIN32':
     # otherwise: internal error: invalid --jobserver-fds string `gmake_semaphore_1824'
@@ -89,7 +94,7 @@ if args.verbose:
 proc = None
 if args.os == 'WIN32':
     # we must emulate a UNIX environment to build openssl using mingw
-    proc = Popen(bash, env=env, cwd=args.cwd, stdin=PIPE, universal_newlines=True)
+    proc = Popen("bash", env=env, cwd=args.cwd, stdin=PIPE, universal_newlines=True)
     proc.communicate(input=cmd_line)
 else:
     proc = Popen(cmd_line, env=env, cwd=args.cwd, shell=True)

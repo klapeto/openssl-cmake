@@ -65,14 +65,15 @@ else()
             if (NOT MSYS_BASH)
                 message(FATAL_ERROR "Specify MSYS installation path")
             endif(NOT MSYS_BASH)
-            
-            set(MINGW_MAKE ${CMAKE_MAKE_PROGRAM})
-            message(WARNING "Assuming your make program is a sibling of your compiler (resides in same directory)")
         elseif(NOT (CYGWIN OR MSYS))
             message(FATAL_ERROR "Unsupported compiler infrastructure")
         endif(MINGW)
-        
-        set(MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM})
+
+        # force use make for openssl. cmake might use ninja, etc
+        find_program(MAKE_PROGRAM make)
+        set(MINGW_MAKE ${MAKE_PROGRAM})
+
+        set(MINGW_CC_PATH ${CMAKE_C_COMPILER})
     elseif(MINGW AND CROSS)
         # MINGW Cross compilation (e.g MXE). make will suffice
         find_program(MAKE_PROGRAM make)
@@ -85,7 +86,8 @@ else()
 
     # on windows we need to replace path to perl since CreateProcess(..) cannot handle unix paths
     if (WIN32 AND NOT CROSS)
-        set(PERL_PATH_FIX_INSTALL sed -i -- 's/\\/usr\\/bin\\/perl/perl/g' Makefile)
+        # use | separator because cmake fails with escapes
+        set(PERL_PATH_FIX_INSTALL sed -i -- 's|/usr/bin/perl|perl|g' Makefile)
     else()
         set(PERL_PATH_FIX_INSTALL true)
     endif()
@@ -102,7 +104,7 @@ else()
 
     # python helper script for corrent building environment
     set(BUILD_ENV_TOOL ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/building_env.py
-        --bash "${MSYS_BASH}" --make "${MINGW_MAKE}" --envfile "${CMAKE_CURRENT_BINARY_DIR}/buildenv.txt" ${OS})
+       --bash "${MSYS_BASH}" --make "${MINGW_MAKE}" --cc "${MINGW_CC_PATH}" --envfile "${CMAKE_CURRENT_BINARY_DIR}/buildenv.txt" ${OS})
 
     # user-specified modules
     set(CONFIGURE_OPENSSL_MODULES ${OPENSSL_MODULES})
@@ -196,7 +198,6 @@ else()
 
         INSTALL_COMMAND ${BUILD_ENV_TOOL} <SOURCE_DIR> -- ${PERL_PATH_FIX_INSTALL}
         COMMAND ${BUILD_ENV_TOOL} <SOURCE_DIR> -- ${MAKE_PROGRAM} DESTDIR=${OPENSSL_PREFIX} install_sw ${INSTALL_OPENSSL_MAN}
-        COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR} ${CMAKE_BINARY_DIR}                    # force CMake-reload
 
         LOG_INSTALL 1
     )
